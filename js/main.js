@@ -3,6 +3,25 @@ var ctx = canvas.getContext('2d')
 canvas.height = 700
 canvas.width = 1000
 
+var defaultBallRadius = 20
+var defaultBallSpeed = 5
+var blockWidth = 101
+var blockHeight = 40
+var numBlockRows = 5
+var paddleWidth = 200
+var paddleHeight = 20
+var paddleSpeed = 15
+var alternatingBlocks = true
+
+let state = {
+    left: false,
+    right: false,
+    lives: 3
+}
+
+let leftKeys = ['KeyA', 'KeyN', 'ArrowLeft']
+let rightKeys = ['KeyD', 'KeyP', 'ArrowRight']
+
 class Ball {
     constructor(x, y, speed, color, radius, isStuckToPaddle) {
         this.x = x
@@ -76,30 +95,54 @@ class Block {
 }
 
 /* Initialize Balls */
-var firstBall = new Ball(200, 300, 1, 'rgb(40, 65, 255)', 70, false)
-var rainbow = new RainbowBall(870, 320, 1, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
+// var firstBall = new Ball(200, 300, defaultBallSpeed, 'rgb(40, 65, 255)', 70, false)
+// var rainbow = new RainbowBall(870, 320, defaultBallSpeed, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
 var balls = []
-balls.push(firstBall, rainbow)
+// balls.push(firstBall, rainbow)
 
 /* Initialize Blocks */
-var blockWidth = 101
-var blockHeight = 40
 var numBlockColumns = Math.floor(canvas.width / blockWidth)
 var xPadding = (canvas.width % blockWidth) / 2
-var numBlockRows = 5
 var blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
 
 /* Initialize Paddle */
-var paddleWidth = 200
-var paddleHeight = 40
 var paddle = new Paddle(canvas.width/2-paddleWidth/2, canvas.height-paddleHeight, 5, 'black', paddleWidth, paddleHeight, false)
 
-// var drawableObjects = [paddle, ...blocks, ...balls]
+function update() {
+    updatePaddle()
+    updateBalls()
+}
+
+function updatePaddle() {
+    if(state.left) {
+        paddle.x = paddle.x - paddleSpeed
+    }
+    if(state.right) {
+        paddle.x = paddle.x + paddleSpeed
+    }
+    if(paddle.x < 0) {
+        paddle.x = 0
+    }
+    if(paddle.x > (canvas.width - paddle.width)) {
+        paddle.x = canvas.width - paddle.width
+    }
+}
+
+function updateBalls() {
+    for (let ball of balls) {
+        if(ball.isStuckToPaddle) {
+            ball.x = paddle.x + paddle.width/2
+            ball.y = paddle.y - ball.radius
+        } else {
+            // move the balls
+            // check for collisions
+            // delete blocks? (Not sure if here is the right place)
+        }
+    }
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    // for (var obj of drawableObjects) {
-    // obj.draw()
-    // }
     paddle.draw()
     for (var block of blocks) {
         block.draw()
@@ -109,22 +152,46 @@ function draw() {
     }
 }
 
-(function () {
-    function main() {
-        window.requestAnimationFrame( main )
-        draw()
-    }
-    main()
-})()
-
 function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
-    let newBlocks = []
-    let blockColors = ['red', 'orange', 'yellow', 'blue', 'green', 'pink', 'orange', 'purple']
-    for (let x = 0; x < columns; x++) {
-        for (let y = 0; y < rows; y++) {
-            var nextColor = blockColors[Math.floor(Math.random() * blockColors.length)]
-            newBlocks.push(new Block(col1X + x * width, row1Y + y * height, width, height, nextColor, 1))
+    var newBlocks = []
+    var blockColors = ['red', 'orange', 'yellow', 'blue', 'green', 'pink', 'purple']
+    for (var x = 0; x < columns; x++) {
+        for (var y = 0; y < rows; y++) {
+            if(!alternatingBlocks || (x + y) % 2) {
+                var nextColor = blockColors[Math.floor(Math.random() * blockColors.length)]
+                newBlocks.push(new Block(col1X + x * width, row1Y + y * height, width, height, nextColor, 1))
+            }
         }
     }
     return newBlocks
 }
+
+function addBallToPaddle(balls, paddle) {
+    balls.push(new Ball(paddle.x + paddleWidth/2, paddle.y - defaultBallRadius, defaultBallSpeed, 'purple', defaultBallRadius, true))
+}
+addBallToPaddle(balls, paddle)
+
+window.addEventListener('keydown', (key) => {
+    if(leftKeys.includes(key.code)) {
+        state.left = true
+    } else if(rightKeys.includes(key.code)) {
+        state.right = true
+    }
+})
+
+window.addEventListener('keyup', (key) => {
+    if(leftKeys.includes(key.code)) {
+        state.left = false
+    } else if(rightKeys.includes(key.code)) {
+        state.right = false 
+    }
+})
+
+;(function () {
+    function main() {
+        window.requestAnimationFrame( main )
+        update()
+        draw()
+    }
+    main()
+})()
