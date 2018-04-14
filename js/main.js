@@ -1,7 +1,10 @@
+/* global Victor */
 var canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('myCanvas'))
 var ctx = canvas.getContext('2d')
 canvas.height = 700
 canvas.width = 1000
+
+var vec = new Victor(0, 123)
 
 var defaultBallRadius = 20
 var defaultBallSpeed = 5
