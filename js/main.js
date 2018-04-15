@@ -4,17 +4,15 @@ var ctx = canvas.getContext('2d')
 canvas.height = 700
 canvas.width = 1000
 
-var vec = new Victor(0, 123)
-
 var defaultBallRadius = 20
-var defaultBallSpeed = 5
-var blockWidth = 101
-var blockHeight = 40
-var numBlockRows = 5
-var paddleWidth = 200
+var defaultBallSpeed = new Victor(7,-7)
+var blockWidth = 50 
+var blockHeight = 150
+var blockDiagonal = Math.sqrt(blockWidth^2 + blockHeight^2)
+var numBlockRows = 3
+var paddleWidth = 1000
 var paddleHeight = 20
-var paddleSpeed = 15
-var alternatingBlocks = true
+var alternatingBlocks = false
 
 let state = {
     left: false,
@@ -24,12 +22,12 @@ let state = {
 
 let leftKeys = ['KeyA', 'KeyN', 'ArrowLeft']
 let rightKeys = ['KeyD', 'KeyP', 'ArrowRight']
+let releaseBallKeys = ['Space']
 
 class Ball {
-    constructor(x, y, speed, color, radius, isStuckToPaddle) {
-        this.x = x
-        this.y = y
-        this.speed = speed
+    constructor(position, speed, color, radius, isStuckToPaddle) {
+        this.position = position.clone()
+        this.speed = speed.clone()
         this.color = color
         this.radius = radius
         this.isStuckToPaddle = isStuckToPaddle
@@ -37,16 +35,15 @@ class Ball {
     draw() {
         ctx.beginPath()
         ctx.fillStyle = this.color
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true)
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2, true)
         ctx.fill()
     }
 }
 
 class RainbowBall {
-    constructor(x, y, speed, insideColor, outsideColor, radius, isStuckToPaddle) {
-        this.x = x
-        this.y = y
-        this.speed = speed
+    constructor(position, speed, insideColor, outsideColor, radius, isStuckToPaddle) {
+        this.position = position.clone()
+        this.speed = speed.clone()
         this.insideColor = insideColor
         this.outsideColor = outsideColor
         this.radius = radius
@@ -55,7 +52,7 @@ class RainbowBall {
     draw() {
         ctx.beginPath()
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true)
-        this.gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, 1)
+        this.gradient = ctx.createRadialGradient(this.position.x, this.position.y, this.radius, this.position.x, this.position.y, 1)
         this.gradient.addColorStop(0, this.outsideColor)
         this.gradient.addColorStop(1, this.insideColor)
         ctx.fillStyle = this.gradient
@@ -64,10 +61,9 @@ class RainbowBall {
 }
 
 class Paddle {
-    constructor(x, y, maxSpeed, color, width, height, isSticky) {
-        this.x = x
-        this.y = y
-        this.maxSpeed = maxSpeed
+    constructor(position, maxSpeed, color, width, height, isSticky) {
+        this.position = position.clone()
+        this.maxSpeed = maxSpeed.clone()
         this.color = color
         this.width = width
         this.height = height
@@ -75,7 +71,7 @@ class Paddle {
     }
     draw() {
         ctx.fillStyle = this.color
-        ctx.fillRect(this.x, this.y, this.width, this.height)
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height)
     }
     releaseBall() {
 
@@ -83,9 +79,8 @@ class Paddle {
 }
 
 class Block {
-    constructor(x, y, width, height, color, health) {
-        this.x = x
-        this.y = y
+    constructor(position, width, height, color, health) {
+        this.position = position.clone()
         this.width = width
         this.height = height
         this.color = color
@@ -93,7 +88,7 @@ class Block {
     }
     draw() {
         ctx.fillStyle = this.color
-        ctx.fillRect(this.x, this.y, this.width, this.height)
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height)
     }
 }
 
@@ -109,39 +104,121 @@ var xPadding = (canvas.width % blockWidth) / 2
 var blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
 
 /* Initialize Paddle */
-var paddle = new Paddle(canvas.width/2-paddleWidth/2, canvas.height-paddleHeight, 5, 'black', paddleWidth, paddleHeight, false)
+var paddle = new Paddle(new Victor(canvas.width/2-paddleWidth/2, canvas.height-paddleHeight), new Victor(10, 0), 'black', paddleWidth, paddleHeight, false)
+addBallToPaddle()
 
 function update() {
     updatePaddle()
     updateBalls()
+    deleteBlocksWithNoHealth()
+    detectLevelEnd()
 }
 
 function updatePaddle() {
     if(state.left) {
-        paddle.x = paddle.x - paddleSpeed
+        paddle.position = paddle.position.subtract(paddle.maxSpeed)
     }
     if(state.right) {
-        paddle.x = paddle.x + paddleSpeed
+        paddle.position = paddle.position.add(paddle.maxSpeed)
     }
-    if(paddle.x < 0) {
-        paddle.x = 0
+    if(paddle.position.x < 0) {
+        paddle.position.x = 0
     }
-    if(paddle.x > (canvas.width - paddle.width)) {
-        paddle.x = canvas.width - paddle.width
+    if(paddle.position.x > (canvas.width - paddle.width)) {
+        paddle.position.x = canvas.width - paddle.width
     }
 }
 
 function updateBalls() {
     for (let ball of balls) {
-        if(ball.isStuckToPaddle) {
-            ball.x = paddle.x + paddle.width/2
-            ball.y = paddle.y - ball.radius
+        if (ball.isStuckToPaddle) {
+            ball.position.x = paddle.position.x + paddle.width / 2
+            ball.position.y = paddle.position.y - ball.radius
         } else {
-            // move the balls
-            // check for collisions
-            // delete blocks? (Not sure if here is the right place)
+            if(shouldReflectOnRightWall(ball) || shouldReflectOffLeftWall(ball)) {
+                ball.speed.invertX()
+            }
+            if(shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, paddle)) {
+                ball.speed.invertY()
+            }
+            ball.position.add(ball.speed)
+
+
+            handleBlockCollisions(ball, blocks)
         }
     }
+}
+
+function handleBlockCollisions(ball, blocks) {
+    for (let block of blocks) {
+        let blockCenter = block.position.clone()
+        blockCenter.y = blockCenter.y + block.height / 2
+        blockCenter.x = blockCenter.x + block.width / 2
+        checkIfBallAndBlockAreColliding(ball, block, blockCenter)
+    }
+}
+
+function checkIfBallAndBlockAreColliding(ball, block, blockCenter) {
+    let dist = new Victor(ball.position.absDistanceX(blockCenter), ball.position.absDistanceY(blockCenter))
+    if (dist.y > blockHeight / 2 + ball.radius || dist.x > blockWidth / 2 + ball.radius) {
+        return false
+    }
+    if (dist.y <= blockCenter.y / 2) {
+        block.health --
+        ball.speed.invertY()
+        return true
+    }
+    if (dist.x <= blockCenter.x / 2) {
+        block.health --
+        ball.speed.invertX()
+        return true
+    }
+    // var distanceFromEdges = dist.subtract(new Victor(block.position.divide(2)))
+    // var xAndYFromEdgesSquared = distanceFromEdges.lengthSq() 
+    // if(xAndYFromEdgesSquared <= ball.radius^2) {
+    //     if()
+
+    //     return true
+    // }
+
+
+}
+
+function deleteBlocksWithNoHealth() {
+    if (blocks.length > 0) {
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            if (blocks[i].health < 1) {
+                blocks.splice(i, 1)
+
+            }
+            // else if (typeof blocks[i].position.x === 'undefined' 
+            //     || !blocks[i].position.x
+            //     || typeof blocks[i].position.y === 'undefined'
+            //     || !blocks[i].position.y) {
+            //     blocks.splice(i, 1)
+            // }
+        }
+    }
+}
+
+function shouldReflectOnRightWall(ball) {
+    return ball.speed.x > 0 && ball.position.x > canvas.width - ball.radius
+}
+
+function shouldReflectOffLeftWall(ball) {
+    return ball.speed.x < 0 && ball.position.x < ball.radius
+}
+
+function shouldReflectOffTopWall(ball) {
+    return ball.speed.y < 0 && ball.position.y < ball.radius
+}
+
+function shouldReflectOffPaddle(ball, paddle) {
+    return ball.speed.y > 0 
+        && ball.position.y + ball.radius >= paddle.position.y 
+        && ball.position.y + ball.radius < paddle.position.y + 40
+        && ball.position.x > paddle.position.x
+        && ball.position.x < paddle.position.x + paddle.width
 }
 
 function draw() {
@@ -162,23 +239,41 @@ function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
         for (var y = 0; y < rows; y++) {
             if(!alternatingBlocks || (x + y) % 2) {
                 var nextColor = blockColors[Math.floor(Math.random() * blockColors.length)]
-                newBlocks.push(new Block(col1X + x * width, row1Y + y * height, width, height, nextColor, 1))
+                newBlocks.push(new Block(new Victor(col1X + x * width, row1Y + y * height), width, height, nextColor, 1))
             }
         }
     }
     return newBlocks
 }
 
-function addBallToPaddle(balls, paddle) {
-    balls.push(new Ball(paddle.x + paddleWidth/2, paddle.y - defaultBallRadius, defaultBallSpeed, 'purple', defaultBallRadius, true))
+function addBallToPaddle() {
+    balls.push(new Ball(new Victor(paddle.position.x + paddleWidth / 2, paddle.position.y - defaultBallRadius), defaultBallSpeed, 'purple', defaultBallRadius, true))
 }
-addBallToPaddle(balls, paddle)
+
+function releaseBall() {
+    let stuckBalls = balls.filter(ball => ball.isStuckToPaddle)
+    if (stuckBalls !== null && stuckBalls !== undefined && stuckBalls.length > 0) {
+        stuckBalls[0].isStuckToPaddle = false
+    }
+}
+
+function detectLevelEnd() {
+    if (blocks.length < 1) {
+        this.alternatingBlocks = !this.alternatingBlocks
+        blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
+        balls = []
+        addBallToPaddle()
+        releaseBall()
+    }
+}
 
 window.addEventListener('keydown', (key) => {
     if(leftKeys.includes(key.code)) {
         state.left = true
     } else if(rightKeys.includes(key.code)) {
         state.right = true
+    } else if(releaseBallKeys.includes(key.code)) {
+        releaseBall()
     }
 })
 
