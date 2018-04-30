@@ -10,15 +10,14 @@ var blockWidth = 50
 var blockHeight = 150
 var blockDiagonal = Math.sqrt(blockWidth^2 + blockHeight^2)
 var numBlockRows = 3
-var paddleWidth = 1000
+var numBlockColumns = Math.floor(canvas.width / blockWidth)
+var xPadding = (canvas.width % blockWidth) / 2
+var paddleWidth = 90
 var paddleHeight = 20
 var alternatingBlocks = false
+var startingBallStockpile = 3
 
-let state = {
-    left: false,
-    right: false,
-    lives: 3
-}
+let state = {}
 
 let leftKeys = ['KeyA', 'KeyN', 'ArrowLeft']
 let rightKeys = ['KeyD', 'KeyP', 'ArrowRight']
@@ -92,20 +91,25 @@ class Block {
     }
 }
 
-/* Initialize Balls */
-// var firstBall = new Ball(200, 300, defaultBallSpeed, 'rgb(40, 65, 255)', 70, false)
-// var rainbow = new RainbowBall(870, 320, defaultBallSpeed, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
-var balls = []
-// balls.push(firstBall, rainbow)
+function newGame() {
+    state = {
+        left: false,
+        right: false,
+        ballStockpile: startingBallStockpile,
+        balls: [],
+        paddle: createPaddle(),
+        blocks: initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
+    }
+    // var firstBall = new Ball(200, 300, defaultBallSpeed, 'rgb(40, 65, 255)', 70, false)
+    // var rainbow = new RainbowBall(870, 320, defaultBallSpeed, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
+    // state.balls.push(firstBall, rainbow)
+    addBallToPaddle()
+}
+newGame()
 
-/* Initialize Blocks */
-var numBlockColumns = Math.floor(canvas.width / blockWidth)
-var xPadding = (canvas.width % blockWidth) / 2
-var blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
-
-/* Initialize Paddle */
-var paddle = new Paddle(new Victor(canvas.width/2-paddleWidth/2, canvas.height-paddleHeight), new Victor(10, 0), 'black', paddleWidth, paddleHeight, false)
-addBallToPaddle()
+function createPaddle() {
+    return new Paddle(new Victor(canvas.width / 2 - paddleWidth / 2, canvas.height - paddleHeight), new Victor(10, 0), 'black', paddleWidth, paddleHeight, false)
+}
 
 function update() {
     updatePaddle()
@@ -116,37 +120,63 @@ function update() {
 
 function updatePaddle() {
     if(state.left) {
-        paddle.position = paddle.position.subtract(paddle.maxSpeed)
+        state.paddle.position = state.paddle.position.subtract(state.paddle.maxSpeed)
     }
     if(state.right) {
-        paddle.position = paddle.position.add(paddle.maxSpeed)
+        state.paddle.position = state.paddle.position.add(state.paddle.maxSpeed)
     }
-    if(paddle.position.x < 0) {
-        paddle.position.x = 0
+    if(state.paddle.position.x < 0) {
+        state.paddle.position.x = 0
     }
-    if(paddle.position.x > (canvas.width - paddle.width)) {
-        paddle.position.x = canvas.width - paddle.width
+    if(state.paddle.position.x > (canvas.width - state.paddle.width)) {
+        state.paddle.position.x = canvas.width - state.paddle.width
     }
 }
 
 function updateBalls() {
-    for (let ball of balls) {
+    for (let ball of state.balls) {
         if (ball.isStuckToPaddle) {
-            ball.position.x = paddle.position.x + paddle.width / 2
-            ball.position.y = paddle.position.y - ball.radius
+            ball.position.x = state.paddle.position.x + state.paddle.width / 2
+            ball.position.y = state.paddle.position.y - ball.radius
         } else {
             if(shouldReflectOnRightWall(ball) || shouldReflectOffLeftWall(ball)) {
                 ball.speed.invertX()
             }
-            if(shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, paddle)) {
+            if(shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, state.paddle)) {
                 ball.speed.invertY()
             }
             ball.position.add(ball.speed)
-
-
-            handleBlockCollisions(ball, blocks)
+            handleBlockCollisions(ball, state.blocks)
         }
     }
+    deleteBallsTouchingBottom(state.balls)
+}
+
+function deleteBallsTouchingBottom(balls) {
+    if (balls.length > 0) {
+        for (let i = balls.length - 1; i >= 0; i--) {
+            if (balls[i].position.y > canvas.height + balls[i].radius) {
+                balls.splice(i, 1)
+                if (balls.length <= 0) {
+                    getAnotherBall()
+                }
+            }
+        }
+    }
+}
+
+function getAnotherBall() {
+    if (state.ballStockpile > 0) {
+        state.ballStockpile--
+        addBallToPaddle()
+    } else {
+        gameOver()
+    }
+}
+
+function gameOver() {
+    alert('Game over')
+    newGame()
 }
 
 function handleBlockCollisions(ball, blocks) {
@@ -180,15 +210,13 @@ function checkIfBallAndBlockAreColliding(ball, block, blockCenter) {
 
     //     return true
     // }
-
-
 }
 
 function deleteBlocksWithNoHealth() {
-    if (blocks.length > 0) {
-        for (let i = blocks.length - 1; i >= 0; i--) {
-            if (blocks[i].health < 1) {
-                blocks.splice(i, 1)
+    if (state.blocks.length > 0) {
+        for (let i = state.blocks.length - 1; i >= 0; i--) {
+            if (state.blocks[i].health < 1) {
+                state.blocks.splice(i, 1)
 
             }
             // else if (typeof blocks[i].position.x === 'undefined' 
@@ -223,13 +251,15 @@ function shouldReflectOffPaddle(ball, paddle) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    paddle.draw()
-    for (var block of blocks) {
+    state.paddle.draw()
+    for (var block of state.blocks) {
         block.draw()
     }
-    for (var ball of balls) {
+    for (var ball of state.balls) {
         ball.draw()
     }
+    ctx.font = '20px Arial'
+    ctx.fillText('Lives: ' +  state.ballStockpile, 10, 30)
 }
 
 function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
@@ -247,21 +277,21 @@ function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
 }
 
 function addBallToPaddle() {
-    balls.push(new Ball(new Victor(paddle.position.x + paddleWidth / 2, paddle.position.y - defaultBallRadius), defaultBallSpeed, 'purple', defaultBallRadius, true))
+    state.balls.push(new Ball(new Victor(state.paddle.position.x + paddleWidth / 2, state.paddle.position.y - defaultBallRadius), defaultBallSpeed, 'purple', defaultBallRadius, true))
 }
 
 function releaseBall() {
-    let stuckBalls = balls.filter(ball => ball.isStuckToPaddle)
+    let stuckBalls = state.balls.filter(ball => ball.isStuckToPaddle)
     if (stuckBalls !== null && stuckBalls !== undefined && stuckBalls.length > 0) {
         stuckBalls[0].isStuckToPaddle = false
     }
 }
 
 function detectLevelEnd() {
-    if (blocks.length < 1) {
+    if (state.blocks.length < 1) {
         this.alternatingBlocks = !this.alternatingBlocks
-        blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
-        balls = []
+        state.blocks = initializeBlocks(numBlockColumns, numBlockRows, xPadding, 50, blockWidth, blockHeight)
+        state.balls = []
         addBallToPaddle()
         releaseBall()
     }
