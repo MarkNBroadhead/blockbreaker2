@@ -5,10 +5,10 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeed = new Victor(7,-7)
-var blockWidth = 50 
+var defaultBallSpeed = new Victor(7, -7)
+var blockWidth = 50
 var blockHeight = 150
-var blockDiagonal = Math.sqrt(blockWidth^2 + blockHeight^2)
+var blockDiagonal = Math.sqrt(blockWidth ^ 2 + blockHeight ^ 2)
 var numBlockRows = 3
 var numBlockColumns = Math.floor(canvas.width / blockWidth)
 var xPadding = (canvas.width % blockWidth) / 2
@@ -119,16 +119,16 @@ function update() {
 }
 
 function updatePaddle() {
-    if(state.left) {
+    if (state.left) {
         state.paddle.position = state.paddle.position.subtract(state.paddle.maxSpeed)
     }
-    if(state.right) {
+    if (state.right) {
         state.paddle.position = state.paddle.position.add(state.paddle.maxSpeed)
     }
-    if(state.paddle.position.x < 0) {
+    if (state.paddle.position.x < 0) {
         state.paddle.position.x = 0
     }
-    if(state.paddle.position.x > (canvas.width - state.paddle.width)) {
+    if (state.paddle.position.x > (canvas.width - state.paddle.width)) {
         state.paddle.position.x = canvas.width - state.paddle.width
     }
 }
@@ -139,10 +139,10 @@ function updateBalls() {
             ball.position.x = state.paddle.position.x + state.paddle.width / 2
             ball.position.y = state.paddle.position.y - ball.radius
         } else {
-            if(shouldReflectOnRightWall(ball) || shouldReflectOffLeftWall(ball)) {
+            if (shouldReflectOnRightWall(ball) || shouldReflectOffLeftWall(ball)) {
                 ball.speed.invertX()
             }
-            if(shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, state.paddle)) {
+            if (shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, state.paddle)) {
                 ball.speed.invertY()
             }
             ball.position.add(ball.speed)
@@ -194,12 +194,12 @@ function checkIfBallAndBlockAreColliding(ball, block, blockCenter) {
         return false
     }
     if (dist.y <= blockCenter.y / 2) {
-        block.health --
+        block.health--
         ball.speed.invertY()
         return true
     }
     if (dist.x <= blockCenter.x / 2) {
-        block.health --
+        block.health--
         ball.speed.invertX()
         return true
     }
@@ -242,8 +242,8 @@ function shouldReflectOffTopWall(ball) {
 }
 
 function shouldReflectOffPaddle(ball, paddle) {
-    return ball.speed.y > 0 
-        && ball.position.y + ball.radius >= paddle.position.y 
+    return ball.speed.y > 0
+        && ball.position.y + ball.radius >= paddle.position.y
         && ball.position.y + ball.radius < paddle.position.y + 40
         && ball.position.x > paddle.position.x
         && ball.position.x < paddle.position.x + paddle.width
@@ -259,7 +259,7 @@ function draw() {
         ball.draw()
     }
     ctx.font = '20px Arial'
-    ctx.fillText('Lives: ' +  state.ballStockpile, 10, 30)
+    ctx.fillText('Lives: ' + state.ballStockpile, 10, 30)
 }
 
 function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
@@ -267,7 +267,7 @@ function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
     var blockColors = ['red', 'orange', 'yellow', 'blue', 'green', 'pink', 'purple']
     for (var x = 0; x < columns; x++) {
         for (var y = 0; y < rows; y++) {
-            if(!alternatingBlocks || (x + y) % 2) {
+            if (!alternatingBlocks || (x + y) % 2) {
                 var nextColor = blockColors[Math.floor(Math.random() * blockColors.length)]
                 newBlocks.push(new Block(new Victor(col1X + x * width, row1Y + y * height), width, height, nextColor, 1))
             }
@@ -298,28 +298,28 @@ function detectLevelEnd() {
 }
 
 window.addEventListener('keydown', (key) => {
-    if(leftKeys.includes(key.code)) {
+    if (leftKeys.includes(key.code)) {
         state.left = true
-    } else if(rightKeys.includes(key.code)) {
+    } else if (rightKeys.includes(key.code)) {
         state.right = true
-    } else if(releaseBallKeys.includes(key.code)) {
+    } else if (releaseBallKeys.includes(key.code)) {
         releaseBall()
     }
 })
 
 window.addEventListener('keyup', (key) => {
-    if(leftKeys.includes(key.code)) {
+    if (leftKeys.includes(key.code)) {
         state.left = false
-    } else if(rightKeys.includes(key.code)) {
-        state.right = false 
+    } else if (rightKeys.includes(key.code)) {
+        state.right = false
     }
 })
 
-;(function () {
-    function main() {
-        window.requestAnimationFrame( main )
-        update()
-        draw()
-    }
-    main()
-})()
+    ; (function () {
+        function main() {
+            window.requestAnimationFrame(main)
+            update()
+            draw()
+        }
+        main()
+    })()
