@@ -10,7 +10,7 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeee = new Victor(5, -5)
+var defaultBallSpeed = new Victor(5, -5)
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
