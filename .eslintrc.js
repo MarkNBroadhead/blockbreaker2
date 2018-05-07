@@ -23,6 +23,7 @@ module.exports = {
         "semi": [
             "error",
             "never"
-        ]
+        ],
+        "no-trailing-spaces": "warn"
     }
 };
