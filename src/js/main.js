@@ -10,13 +10,13 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeed = new Victor(5, -5)
+var defaultBallSpeee = new Victor(5, -5)
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
 var numBlockColumns = Math.floor(canvas.width / blockWidth)
 var topPadding = (canvas.width % blockWidth) / 2
-var paddleWidth = 1000
+var paddleWidth = 120
 var paddleHeight = 20
 var startingBallStockpile = 3
 
@@ -218,7 +218,6 @@ window.addEventListener('keydown', (key) => {
         state.right = true
     } else if (releaseBallKeys.includes(key.code)) {
         releaseBall()
-        addBallToPaddle()
     }
 })
 
