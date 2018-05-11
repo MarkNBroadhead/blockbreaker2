@@ -10,7 +10,7 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeed = new Victor(5, -5)
+var defaultBallSpeed = new Victor(7, -7)
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
@@ -34,7 +34,9 @@ function newGame() {
         balls: [],
         paddle: createPaddle(),
         blocks: initializeBlocks(numBlockColumns, numBlockRows, topPadding, 50, blockWidth, blockHeight),
-        alternatingBlocks: false
+        alternatingBlocks: false,
+        level: 1,
+        points: 0
     }
     // var firstBall = new Ball(200, 300, defaultBallSpeed, 'rgb(40, 65, 255)', 70, false)
     // var rainbow = new RainbowBall(870, 320, defaultBallSpeed, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
@@ -111,7 +113,7 @@ function getAnotherBall() {
 }
 
 function gameOver() {
-    alert('Game over')
+    alert('Game over!\nYou completed ' + state.level-1 + ' levels with a score of ' + state.points + '!\nYOU ROCK!');
     newGame()
 }
 
@@ -153,7 +155,7 @@ function detectLevelEnd() {
         state.blocks = initializeBlocks(numBlockColumns, numBlockRows, topPadding, 50, blockWidth, blockHeight)
         state.balls = []
         addBallToPaddle()
-        releaseBall()
+        state.level ++
     }
 }
 
@@ -161,6 +163,7 @@ function deleteBlocksWithNoHealth() {
     if (state.blocks.length > 0) {
         for (let i = state.blocks.length - 1; i >= 0; i--) {
             if (state.blocks[i].health < 1) {
+                state.points += 100
                 state.blocks.splice(i, 1)
             }
         }
@@ -197,7 +200,8 @@ function draw() {
         ball.draw(ctx)
     }
     ctx.font = '20px Arial'
-    ctx.fillText('Lives: ' + state.ballStockpile, 10, 30)
+    ctx.fillText('Lives: ' + state.ballStockpile + ' | Blocks left: ' + state.blocks.length, 10, 30)
+    ctx.fillText('Score: ' + state.points, 850, 30)
 }
 
 function addBallToPaddle() {
@@ -229,10 +233,10 @@ window.addEventListener('keyup', (key) => {
     }
 })
 
-; (function () {
-    function main() {
+;(function () {
+    function main(tFrame) {
         window.requestAnimationFrame(main)
-        update()
+        update(tFrame)
         draw()
     }
     main()
