@@ -10,7 +10,10 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeed = new Victor(2, -2)
+function getNewBallSpeed(level) {
+    let first = 6
+    return new Victor.fromArray([first - 1 + level, -first + 1 - level])
+}
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
@@ -80,8 +83,17 @@ function updateBalls() {
             if (shouldReflectOnRightWall(ball) || shouldReflectOffLeftWall(ball)) {
                 ball.speed.invertX()
             }
-            if (shouldReflectOffTopWall(ball) || shouldReflectOffPaddle(ball, state.paddle)) {
+            if (shouldReflectOffTopWall(ball)) {
                 ball.speed.invertY()
+            }
+            if (shouldReflectOffPaddle(ball, state.paddle)) {
+                ball.speed.invertY()
+                if (state.left) {
+                    ball.speed.x = ball.speed.x - 1
+                }
+                if (state.right) {
+                    ball.speed.x = ball.speed.x + 1
+                }
             }
             ball.position.add(ball.speed)
             handleBlockCollisions(ball, state.blocks)
@@ -202,11 +214,11 @@ function draw() {
     ctx.font = '20px Arial'
     ctx.fillText('Lives: ' + state.ballStockpile + ' | Blocks left: ' + state.blocks.length, 10, 30)
     ctx.fillText('Score: ' + state.points, 850, 30)
+    ctx.fillText('Level: ' + state.level, 480, 30)
 }
 
 function addBallToPaddle() {
-    let initialBallVelocity = defaultBallSpeed.addScalarX(state.level - 1).addScalarY(state.level - 1)
-    state.balls.push(new Ball(new Victor(state.paddle.position.x + paddleWidth / 2, state.paddle.position.y - defaultBallRadius), initialBallVelocity, 'purple', defaultBallRadius, true))
+    state.balls.push(new Ball(new Victor(state.paddle.position.x + paddleWidth / 2, state.paddle.position.y - defaultBallRadius), getNewBallSpeed(state.level), 'purple', defaultBallRadius, true))
 }
 
 function releaseBall() {
