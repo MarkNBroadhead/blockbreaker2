@@ -10,7 +10,7 @@ canvas.height = 700
 canvas.width = 1000
 
 var defaultBallRadius = 20
-var defaultBallSpeed = new Victor(7, -7)
+var defaultBallSpeed = new Victor(2, -2)
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
@@ -205,7 +205,8 @@ function draw() {
 }
 
 function addBallToPaddle() {
-    state.balls.push(new Ball(new Victor(state.paddle.position.x + paddleWidth / 2, state.paddle.position.y - defaultBallRadius), defaultBallSpeed, 'purple', defaultBallRadius, true))
+    let initialBallVelocity = defaultBallSpeed.addScalarX(state.level - 1).addScalarY(state.level - 1)
+    state.balls.push(new Ball(new Victor(state.paddle.position.x + paddleWidth / 2, state.paddle.position.y - defaultBallRadius), initialBallVelocity, 'purple', defaultBallRadius, true))
 }
 
 function releaseBall() {
