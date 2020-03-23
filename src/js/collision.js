@@ -8,11 +8,6 @@ export function checkIfBallAndBlockAreColliding(ball, block) {
     let centerVector = new Victor(_block.height/2, _block.width/2)
     let blockCenter = _.cloneDeep(_block).position.add(centerVector)
     let dist = new Victor(_ball.position.absDistanceX(blockCenter), _ball.position.absDistanceY(blockCenter))
-    // obviously aren't touching
-    if (dist.y > _block.height / 2 + _ball.radius
-        || dist.x > _block.width / 2 + _ball.radius) {
-        return false
-    }
     // touching vertically
     if (_ball.position.y + _ball.radius >= _block.position.y
         && _ball.position.y - _ball.radius <= _block.position.y + _block.height
@@ -64,4 +59,32 @@ export function getAngle(block, ball) {
     let _ballPos = _.cloneDeep(ball.position)
     let relativePosition = _ballPos.subtract(block.getCenter())
     return relativePosition.angle()
+}
+
+export function handleBlockCollisions(ball, blocks) {
+    for (let block of blocks) {
+        let blockCenter = block.position.clone()
+        blockCenter.y = blockCenter.y + block.height / 2
+        blockCenter.x = blockCenter.x + block.width / 2
+        if (checkIfBallAndBlockAreColliding(ball, block)) {
+            block.health--
+            if (isVerticalTo(ball, block)) {
+                if (ball.position.y < block.position.y) {
+                    console.log("Ball has connected with the TOP of a block! \nBall: " + JSON.stringify(ball) + "\nBlock:" + JSON.stringify(block))
+                    ball.speed.y = -Math.abs(ball.speed.y)
+                } else {
+                    console.log("Ball has connected with the BOTTOM of a block! \nBall: " + JSON.stringify(ball) + "\nBlock:" + JSON.stringify(block))
+                    ball.speed.y = Math.abs(ball.speed.y)
+                }
+            } else {
+                if (ball.position.x < block.position.x) {
+                    console.log("Ball has connected with the LEFT side of a block! \nBall: " + JSON.stringify(ball) + "\nBlock:" + JSON.stringify(block))
+                    ball.speed.x = -Math.abs(ball.speed.x)
+                } else {
+                    console.log("Ball has connected with the RIGHT side of a block! \nBall: " + JSON.stringify(ball) + "\nBlock:" + JSON.stringify(block))
+                    ball.speed.x = Math.abs(ball.speed.x)
+                }
+            }
+        }
+    }
 }

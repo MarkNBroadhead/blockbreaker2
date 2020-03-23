@@ -2,18 +2,15 @@ import Victor from 'victor'
 import Ball from './ball'
 import Paddle from './paddle'
 import Block from './block'
-import {checkIfBallAndBlockAreColliding, isVerticalTo} from './collision'
+import {handleBlockCollisions} from './collision'
 
 var canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('myCanvas'))
 var ctx = canvas.getContext('2d')
 canvas.height = 700
 canvas.width = 1000
 
-var defaultBallRadius = 20
-function getNewBallSpeed(level) {
-    let first = 6
-    return new Victor.fromArray([first - 1 + level, -first + 1 - level])
-}
+var defaultBallRadius = 15
+var maxBallSpeed = 15
 var blockWidth = 100
 var blockHeight = 50
 var numBlockRows = canvas.height / blockHeight / 3
@@ -41,9 +38,6 @@ function newGame() {
         level: 1,
         points: 0
     }
-    // var firstBall = new Ball(200, 300, defaultBallSpeed, 'rgb(40, 65, 255)', 70, false)
-    // var rainbow = new RainbowBall(870, 320, defaultBallSpeed, 'rgb(102, 0, 255)', 'rgb(255, 0, 238)', 100, false)
-    // state.balls.push(firstBall, rainbow)
     addBallToPaddle()
 }
 newGame()
@@ -54,7 +48,7 @@ function createPaddle() {
 
 function update() {
     updatePaddle()
-    updateBalls()
+    handleCollisionsAndUpdateBallPositions()
     deleteBlocksWithNoHealth()
     detectLevelEnd()
 }
@@ -74,7 +68,7 @@ function updatePaddle() {
     }
 }
 
-function updateBalls() {
+function handleCollisionsAndUpdateBallPositions() {
     for (let ball of state.balls) {
         if (ball.isStuckToPaddle) {
             ball.position.x = state.paddle.position.x + state.paddle.width / 2
@@ -124,27 +118,20 @@ function getAnotherBall() {
     }
 }
 
-function gameOver() {
-    alert('Game over!\nYou completed ' + state.level-1 + ' levels with a score of ' + state.points + '!\nYOU ROCK!');
-    newGame()
+function getNewBallSpeed(level) {
+    let initial = 6
+    return new Victor.fromArray([Math.min(initial + level, maxBallSpeed), Math.max(-initial - level, -maxBallSpeed)])
 }
 
-function handleBlockCollisions(ball, blocks) {
-    for (let block of blocks) {
-        let blockCenter = block.position.clone()
-        blockCenter.y = blockCenter.y + block.height / 2
-        blockCenter.x = blockCenter.x + block.width / 2
-        if (checkIfBallAndBlockAreColliding(ball, block)) {
-            block.health--
-            if (isVerticalTo(ball, block)) {
-                ball.speed.invertY()
-                // alert('reflecting vertically block ' + JSON.stringify(block) + ' and ball ' + JSON.stringify(ball) + ' are colliding')
-            } else {
-                ball.speed.invertX()
-                // alert('reflecting horizontally: block ' + JSON.stringify(block) + ' and ball ' + JSON.stringify(ball) + ' are colliding')
-            }
-        }
+function gameOver() {
+    let numLevels = state.level - 1 > 0 ? state.level : "0"
+    let levelMessage = state.level == 1 ? "levels": "level"
+    let message = 'Game over!\nYou completed ' + numLevels + ' ' + levelMessage + ' with a score of ' + state.points + '!'
+    if (state.level > 4) {
+        message += "\nYOU ROCK!"
     }
+    alert(message);
+    newGame()
 }
 
 function initializeBlocks(columns, rows, col1X, row1Y, width, height) {
